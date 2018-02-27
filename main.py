@@ -14,21 +14,39 @@ import time
 
 # Parameters
 NODES_NUM = 10
+BYZANTINE_NUM = 2
 EPOOL_SIZE = 10000
 
 EPOOL_SAMPLE = 0.9 # num between 0 to 1
-NUM_TX_IN_BLOCK = 500
+NUM_TX_IN_BLOCK = 1000
 
 
+"""
+An example for an Eblock construction simulation
+"""
+def simulateEblockConstructionMethods(nodesNum, epoolSample, epoolSize, txsInBlock):
+
+    sim = simulator.EblockSimulator(nodesNum, epoolSample, epoolSize, 1)
+    
+    sim.sim1(txsInBlock)
+    
+    threshold = (txsInBlock/9000) * (2**256)
+    sim.sim2(txsInBlock, threshold)
+    
+    sim.sim2B(threshold)
+
+"""
+Simulate the manipulation byzantine node can do when constructing an
+"""
+def simulateByzantineFairnessManipulation(nodesNum, byzantineNum, epoolSample, epoolSize, txsInBlock):
+    
+    sim = simulator.FairnessSimulator(nodesNum, byzantineNum, epoolSample, epoolSize, 1)
+
+    sim.allConstructValidEblocks(txsInBlock)
 
 if __name__ == '__main__':
         
-    sim = simulator.Simulator(NODES_NUM, EPOOL_SAMPLE, EPOOL_SIZE, 1)
+    #simulateEblockConstructionMethods(NODES_NUM, EPOOL_SAMPLE, EPOOL_SIZE, NUM_TX_IN_BLOCK)
+    simulateByzantineFairnessManipulation(NODES_NUM, BYZANTINE_NUM, EPOOL_SAMPLE, \
+        EPOOL_SIZE, NUM_TX_IN_BLOCK)
     
-    sim.sim1(NUM_TX_IN_BLOCK)
-    
-    
-    threshold = (NUM_TX_IN_BLOCK/9000) * (2**256)
-    sim.sim2(NUM_TX_IN_BLOCK, threshold)
-        
-    sim.sim2B(threshold)

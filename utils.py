@@ -48,6 +48,30 @@ def compareBlocks(blocksList, isPrint=1):
 
 
 """
+Returns a list of size n where in the (i) place is the number of the 
+different txs between the byzantine node to node i's block.
+"""
+def compareBlocksWithByzantine(blocksList, isPrint=1):
+    numOfBlocks = len(blocksList)
+    missingList = [0]
+    
+    byzantineBlock = blocksList[0]
+    size1 = len(byzantineBlock)
+
+    for i in range(1, numOfBlocks):
+        
+        block2 = blocksList[i]
+        
+        togetherSize = len(set(byzantineBlock+block2))
+        missingNum = togetherSize - size1
+        
+        missingList.append(missingNum)
+            
+    print1(isPrint, missingList)
+    return missingList
+
+
+"""
 Returns a matrix of size n*n where in the (i,j) place is the number of the 
 different txs in the i's epool vs j's epool.
 """
