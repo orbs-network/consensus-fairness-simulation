@@ -175,7 +175,7 @@ class FairnessSimulator:
         
         start = time.process_time()
         
-
+        self.globalEpoolSize = epoolSize
         self.isPrint = isPrint
         self.nodesNum = nodesNum
         self.byzantineNum = byzantineNum
@@ -193,6 +193,13 @@ class FairnessSimulator:
         print1(isPrint, "Time elapsed (chooseTXs): %s" % (end-start))
                 
         # print initial setup statisitics
+        if(isPrint):
+            self.printInitialSetup(start)
+        
+
+    def printInitialSetup(self, start):
+        isPrint = self.isPrint
+
         print1(isPrint, "Total nodes: %s  || Global epool size: %s" \
               % (len(self.nodesList), len(self.globalEpool)))
 
@@ -218,10 +225,10 @@ class FairnessSimulator:
     
         print1(isPrint, "-----------------")
         print1(isPrint, "-----------------")
-        
+
 
     """
-    All nodes construct validEblocks
+    All nodes construct valid Eblocks
     """
     def allConstructValidEblocks(self, numTxInBlock):
         
@@ -260,12 +267,104 @@ class FairnessSimulator:
     that have maximal hash value in its block and replacing it with it own.
     """
     def byzantineManipulateItsBlock(self, beta):
-        block = self.nodesList[0].block
+        byzantine = self.nodesList[0]
+        block = byzantine.block
         blockSize = len(block)
-        numOfTxsToReplace = math.ceil(blockSize * beta)
 
-        for i in range(blockSize-1, -1, -1)
-            if i
+        # update epool without the blocks selected transactions
+        byzantineEpool = set(byzantine.epool).difference(block)
+        byzantineEpool = [i for i in byzantineEpool if i.source == 0]
+
+        sortedEpool = sorted(byzantineEpool, \
+                              key=lambda tx: tx.sha256ToInt("%s" % (tx.source)))
+        
+        epoolSize = len(sortedEpool)
+        numOfTxsToReplace = math.ceil(blockSize * (1 - beta))
+        print1(self.isPrint, "replace %s txs" % (numOfTxsToReplace))
+
+        countReplaced = 0
+        blockIndex = blockSize-1
+        epoolIndex = 0
+        
+        while (countReplaced < numOfTxsToReplace and blockIndex > -1 
+            and epoolIndex < epoolSize):
+
+            # Replace only non-Byzantine txs
+            if block[blockIndex].source != 0:
+                block[blockIndex] = sortedEpool[epoolIndex]
+                epoolIndex += 1
+                countReplaced += 1
+
+            blockIndex -= 1
 
 
+        print1(self.isPrint, "%s txs replaced" % (countReplaced))
+        return block
+        
 
+    """
+    Each node validates the proposed Byzantine's Eblock by the beta parameter
+    (i.e., each of the nodes looks for at least beta-fraction intersection 
+    between its Eblock to the Byzantine's Eblock). 
+
+    Returns the number of nodes that negative validated the Eblock.
+    """
+    def validateEblocks(self, beta):
+
+        txsDiffThreshold = math.ceil(len(self.nodesList[0].block) * (1 - beta))
+        print1(self.isPrint, "Validation threshold %s:" %(txsDiffThreshold))
+        blocks = []
+
+        # build block for each node
+        for nd in self.nodesList:
+            blocks.append(nd.block)
+
+        blockCompList = utils.compareBlocksWithByzantine(blocks, self.isPrint)
+        avg = np.average(blockCompList[1:])
+                
+        mini = np.min(blockCompList[1:])
+        maxi = np.max(blockCompList[1:])
+        
+        print1(self.isPrint, "avg block diff: %s || max diff: %s || min diff: %s" % \
+            (avg, maxi, mini))
+
+        notPassedValidation = list(map(lambda diff: 0 if diff <= txsDiffThreshold else 1, blockCompList))
+        
+        print1(self.isPrint, notPassedValidation)
+
+        numOfNotPassed = sum(notPassedValidation)
+        print1(self.isPrint, "Number nodes that did not passed the block is %s " % (numOfNotPassed))
+        print1(self.isPrint, "-----------------")
+                
+        return numOfNotPassed
+
+    
+    """
+    This function takes a block and extract it from each node's Epool
+    as well as the global Epool. Later, the global Epool and the nodes'
+    epools are being filled with new txs by each node's initial portion.
+    """
+    def inputNewTxs(self, blockToExtract):
+        start = time.process_time()
+
+        # update all Epools without the extracted block
+        self.globalEpool = list(set(self.globalEpool).difference(blockToExtract))
+        for nd in self.nodesList:
+            nd.epool = list(set(nd.epool).difference(blockToExtract))
+        
+        # Fill global Epool by each node portion
+        addToGlobalEpool = epool.createGlobalEpool(self.nodesList, len(blockToExtract))
+        self.globalEpool += addToGlobalEpool
+
+        # Add the new txs to each node epool by it sampling
+        epool.chooseTXs(self.nodesList, addToGlobalEpool)
+
+        if self.isPrint:
+            self.printInitialSetup(start)
+
+    
+    """
+    Returns nodes' distribution in the global Epool
+    """
+    def getGlobalEpoolDist(self):
+        return epool.getNodesDistribution(self.globalEpool, self.nodesNum)

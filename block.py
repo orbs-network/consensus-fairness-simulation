@@ -28,11 +28,11 @@ def buildGoodEblockMultipleHashFunc(node, numTxInBlock):
     # TODO finish this procedure
     for i in range(numTxInBlock):
         # ascending sort by hash
-        sortedEblock = sorted(node.epool, \
+        sortedEpool = sorted(node.epool, \
                               key=lambda tx: tx.sha256ToInt("%s" % (i)))
         
     
-    block = sortedEblock[:numTxInBlock]
+    block = sortedEpool[:numTxInBlock]
     return block
 
 
