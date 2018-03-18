@@ -230,7 +230,7 @@ class FairnessSimulator:
     """
     All nodes construct valid Eblocks
     """
-    def allConstructValidEblocks(self, numTxInBlock):
+    def allConstructValidEblocks(self, numTxInBlock, termNum=0):
         
         print1(self.isPrint, "")
         print1(self.isPrint, "==== Valid Eblock Construction =====")
@@ -240,7 +240,7 @@ class FairnessSimulator:
 
         # build block for each node
         for nd in self.nodesList:
-            blockToAppend = block.buildGoodEblock(nd, numTxInBlock)
+            blockToAppend = block.buildGoodEblock(nd, numTxInBlock, termNum)
             nd.block = blockToAppend
             blocks.append(blockToAppend)
                 
@@ -266,7 +266,7 @@ class FairnessSimulator:
     (1-beta)-fraction of its Eblock by removing all the etxs (that he is not the owner) 
     that have maximal hash value in its block and replacing it with it own.
     """
-    def byzantineManipulateItsBlock(self, beta):
+    def byzantineManipulateItsBlock(self, beta, termNum=0):
         byzantine = self.nodesList[0]
         block = byzantine.block
         blockSize = len(block)
@@ -276,7 +276,7 @@ class FairnessSimulator:
         byzantineEpool = [i for i in byzantineEpool if i.source == 0]
 
         sortedEpool = sorted(byzantineEpool, \
-                              key=lambda tx: tx.sha256ToInt("%s" % (tx.source)))
+                              key=lambda tx: tx.sha256ToInt("%s" % (termNum)))
         
         epoolSize = len(sortedEpool)
         numOfTxsToReplace = math.ceil(blockSize * (1 - beta))

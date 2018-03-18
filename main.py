@@ -18,7 +18,7 @@ BYZANTINE_NUM = 2
 EPOOL_SIZE = 10000
 
 EPOOL_SAMPLE = 0.95 # num between 0 to 1
-NUM_TX_IN_BLOCK = 1000
+NUM_TX_IN_BLOCK = 100
 
 
 """
@@ -91,12 +91,12 @@ def manipulationRepresenationAnalysis(nodesNum, byzantineNum, epoolSample, epool
     txsInBlock, numConsecutiveByz):
 
     beta = epoolSample ** 2 - ((10/txsInBlock) ** (0.5))
-    betaManipulation = beta * 1.1
+    betaManipulation = beta * 1
 
     print("beta: %s, beta manipulation: %s" % (beta, betaManipulation))
     gamma = epoolSize / txsInBlock
-    tau1 = (1-beta)/(gamma+beta-1)
-    tau2 = (1-((1-beta)/gamma)**numConsecutiveByz)
+    tau1 = (1-beta)/beta
+    tau2 = 1 - (1 - (beta/gamma))**numConsecutiveByz
     tau = tau1 * tau2
 
     print("gamma: %s, 2tau: %s" % (gamma, 2*tau))
@@ -109,11 +109,11 @@ def manipulationRepresenationAnalysis(nodesNum, byzantineNum, epoolSample, epool
 
     dist = []
     for i in range(numConsecutiveByz):
-        sim.allConstructValidEblocks(txsInBlock)
-        manipulatedBlock = sim.byzantineManipulateItsBlock(betaManipulation)
+        sim.allConstructValidEblocks(txsInBlock, i)
+        manipulatedBlock = sim.byzantineManipulateItsBlock(betaManipulation, i)
         numFail = sim.validateEblocks(beta)
 
-        if numFail < 3:
+        if numFail < 13:
             sim.inputNewTxs(manipulatedBlock)
         else:
             print("Failed to pass the Eblock!")
@@ -123,10 +123,16 @@ def manipulationRepresenationAnalysis(nodesNum, byzantineNum, epoolSample, epool
 
     
     distDiff = [abs(dist2-dist1) for dist1, dist2 in zip(initialDist, dist)]
-    print("L^1 norm: %s" % (sum(distDiff)))
+    L1Norm = sum(distDiff)
+    print("L^1 norm: %s" % (L1Norm))
+    if L1Norm < (2*tau):
+        print("Success - bound is true")
+        return True
+    else:
+        print("Fail - bound is false")
+        return False
         
 
-        
 
 
     
@@ -137,5 +143,17 @@ if __name__ == '__main__':
 
     #manipulationAnalysis()
 
-    manipulationRepresenationAnalysis(NODES_NUM, 1, EPOOL_SAMPLE, EPOOL_SIZE, 
-        NUM_TX_IN_BLOCK, 10)
+    countFail = 0
+    countSuccess = 0
+    for i in range (10):
+        if manipulationRepresenationAnalysis(NODES_NUM, BYZANTINE_NUM, EPOOL_SAMPLE, EPOOL_SIZE, 
+            NUM_TX_IN_BLOCK, 3):
+            countSuccess += 1
+        else:
+            countFail += 1
+
+        print("")
+        print("----------------------------------------")
+        print("")
+    
+    print("Total fails: %s, Total success: %s" % (countFail, countSuccess))

@@ -12,9 +12,9 @@ Created on Tue Feb 20 14:35:53 2018
 """
 Build a block by the txs with minimum hash value
 """
-def buildGoodEblock(node, numTxInBlock):
+def buildGoodEblock(node, numTxInBlock, termNum = 0):
     # ascending sort by hash
-    sortedEblock = sorted(node.epool, key=lambda tx: tx.hashInt)
+    sortedEblock = sorted(node.epool, key=lambda tx: tx.sha256ToInt("%s" % (termNum)))
     block = sortedEblock[:numTxInBlock]
     return block
 
